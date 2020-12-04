@@ -108,6 +108,8 @@ export class ThreeLoader {
     this.renderer.setSize( this.size.width, this.size.height );
     // this.renderer.encoding = true;
     // this.renderer.outputEncoding = true;
+    this.renderer.outputEncoding = THREE.sRGBEncoding;
+    this.renderer.physicallyCorrectLights = true;
     this.renderer.setPixelRatio( window.devicePixelRatio );
     if (this.config.background) {
       this.renderer.setClearColor(this.config.background, 1);
@@ -160,7 +162,7 @@ export class ThreeLoader {
     let camera;
     if (!inputCamera) {
       camera = new THREE.PerspectiveCamera(
-        45, this.size.width / this.size.height, 3, 1000
+        45, this.size.width / this.size.height, 0.5, 1000
       );
     } else {
       camera = inputCamera;
