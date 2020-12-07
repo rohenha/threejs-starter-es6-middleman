@@ -9,8 +9,35 @@ export const ThreeInstance = {
 
   afterLoadFiles: function () {
     this.afterLoadBackground();
-    this.afterLoadBottle();
+    // this.afterLoadBottle();
+    this.afterLoadInvictus();
+    this.loader.style.display = "none";
     this.three.start();
+  },
+
+  afterLoadInvictus: function () {
+    // console.log(this.three);
+    this.invictus = this.three.files.obj.invictus;
+    this.three.scene.add(this.invictus);
+    this.invictusbox = new THREE.Box3().setFromObject(this.invictus);
+    const size = this.invictusbox.getSize();
+    const scale = 35 / size.y;
+    this.invictus.scale.set(scale, scale, scale);
+    this.bottleMaterial = new THREE.MeshStandardMaterial({
+      color: 0x16697a,
+      opacity: 0.9,
+      transparent: false,
+      // shadowSide: THREE.FrontSide,
+      side: THREE.FrontSide
+    });
+    this.invictus.traverse( child => {
+      if ( child.material ) {
+        console.log(child.name);
+        child.castShadow = true;
+        child.receiveShadow = false;
+        child.material = this.bottleMaterial;
+      }
+    });
   },
 
   afterLoadBottle: function () {
@@ -20,50 +47,82 @@ export const ThreeInstance = {
     const size = this.bottlebox.getSize();
     const scale = 35 / size.y;
     this.bottle.scale.set(scale, scale, scale);
-    this.bottle.castShadow = true;
-    this.bottle.receiveShadow = true;
-    this.bottleMaterial = new THREE.MeshStandardMaterial({
+    this.bottleMaterial = new THREE.MeshBasicMaterial({
+      color: 0xcecece,
+      opacity: 0.5,
+      transparent: true,
+      shadowSide: THREE.FrontSide,
+      side: THREE.BackSide
+    });
+    this.liquidMaterial = new THREE.MeshBasicMaterial({
       color: 0x16697a,
+      opacity: 1,
+      transparent: false
+    });
+    this.metalMaterial = new THREE.MeshStandardMaterial({
+      color: 0x030303,
       roughness: 0.6,
-      metalness: 1
+      metalness: 1,
     });
     this.bottle.traverse( child => {
-      if ( child.material ) child.material = this.bottleMaterial;
+      if ( child.material ) {
+        console.log(child.name);
+        child.castShadow = true;
+        child.receiveShadow = false;
+        switch (child.name) {
+          case "Bottle_Окружность":
+            child.material = this.bottleMaterial;
+            break;
+          case "Liquid_Окружность.002":
+            child.material = this.liquidMaterial;
+            break;
+        
+          default:
+            child.material = this.metalMaterial;
+            break;
+        }
+      }
     });
+    this.bottlePosition = {
+      rotation: 0
+    };
   },
 
   afterLoadBackground: function () {
     this.ground = this.three.files.obj.background;
     this.groundMaterial = new THREE.MeshPhongMaterial({ 
-      color: 0xdb6400,
+      color: 0xFFFFFF,
       shininess: 400,
       reflectivity: 1,
-      refractionRatio: 1
+      refractionRatio: 1,
       });
     this.ground.traverse( child => {
-      if ( child.material ) child.material = this.groundMaterial;
+      if ( child.material ) {
+        child.material = this.groundMaterial;
+        child.castShadow = false;
+        child.receiveShadow = true;
+      }
     });
     this.three.scene.add(this.ground);
     this.groundbox = new THREE.Box3().setFromObject(this.ground);
     const size = this.groundbox.getSize();
     const scale = 50 / size.y;
     this.ground.scale.set(scale, scale, scale);
-    this.ground.castShadow = true;
-    this.ground.receiveShadow = true;
   },
   
   callback: function () {
+    // this.bottlePosition.rotation += 0.5;
+    // this.bottle.rotation.y = this.bottlePosition.rotation * Math.PI / 180;
   },
 
   init: function (container) {
     this.callback = this.callback.bind(this);
     this.three = new ThreeLoader(container, {
-      controls: false,
-      grid: true,
+      controls: true,
+      grid: false,
       debug: false,
       shadowMap: true,
       background: new THREE.Color(0x000000),
-      // background: new THREE.Color(0x3C3C3C),
       callback: this.callback
     });
     // this.scene = this.three.initScene();
@@ -71,13 +130,19 @@ export const ThreeInstance = {
     this.objLoader = new THREE.OBJLoader();
     this.manager = new THREE.LoadingManager();
     this.initScene();
-    this.three.loadFiles(["/assets/model/background/background.mtl", "/assets/model/background/background.obj", "/assets/model/bottle/bottle.mtl", "/assets/model/bottle/bottle.obj"], this.afterLoadFiles.bind(this));
-    // this.initGround();
+    this.loader = document.querySelector(".js-loader");
+    this.loaderPercent = this.loader.querySelector(".js-percent");
+    this.three.loadFiles(["/assets/model/background/background.mtl", "/assets/model/background/background.obj", "/assets/model/invictus/invictus.mtl", "/assets/model/invictus/invictus.obj"], this.afterLoadFiles.bind(this), this.onFilesProgress.bind(this));
+    // this.three.loadFiles(["/assets/model/background/background.mtl", "/assets/model/background/background.obj", "/assets/model/bottle/bottle.mtl", "/assets/model/bottle/bottle.obj"], this.afterLoadFiles.bind(this), this.onFilesProgress.bind(this));
+  },
+
+  onFilesProgress: function (percent) {
+    this.loaderPercent.innerHTML = Math.round(percent, 2);
   },
 
   initScene: function() {
-    this.camera = this.three.setBasicCamera(false, {x: 0, y: 20, z: 60}, {x: 0, y: 15, z: 0});
-    this.three.setCamera(this.camera);
+    this.camera = this.three.setBasicCamera(false, {x: 20, y: 50, z: 60}, {x: 0, y: 15, z: 0});
+    // this.three.setCamera(this.camera);
     this.three.debugCamera(this.camera);
     this.ambientLight = new THREE.AmbientLight(0xffffff, 0.05);
     this.three.scene.add(this.ambientLight);
@@ -114,34 +179,6 @@ export const ThreeInstance = {
     this.spotlight.shadow.camera.focus = 1;
     this.three.scene.add(this.spotlight);
     this.three.debugLight(this.spotlight, "SpotLightHelper");
-  },
-
-  initGround: function () {
-    this.mtlLoader.load('/assets/model/background/background.mtl', (materials) => {
-      materials.preload();
-      this.objLoader.setMaterials(materials);
-      this.objLoader.load('/assets/model/background/background.obj', (object) => {
-        this.three.scene.add(object);
-        this.ground = object;
-        this.groundbox = new THREE.Box3().setFromObject(this.ground);
-        const size = this.groundbox.getSize();
-        const scale = 50 / size.y;
-        this.ground.scale.set(scale, scale, scale);
-        this.ground.castShadow = false;
-        this.ground.receiveShadow = true;
-        // this.three.start();
-      }, this.onProgress);
-    });
-  },
-
-  initModel: function () {
-    this.mtlLoader.load('/assets/model/background/bottle.mtl', (materials) => {
-      materials.preload();
-      this.objLoader.setMaterials(materials);
-      this.objLoader.load('/assets/model/bottle/bottle.obj', (object) => {
-        this.afterLoadBottle(object);
-      }, this.onProgress);
-    });
   },
 
   invoke: function () {

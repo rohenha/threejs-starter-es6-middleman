@@ -104,8 +104,10 @@ export class ThreeLoader {
     if (this.config.fog) {
       scene.fog = new THREE.Fog(this.config.fog.color , this.config.fog.near, this.config.fog.far);
     }
+    if (this.config.background) {
+      scene.background = this.config.background;
+    }
     return scene;
-    // this.scene.background = this.config.background;
   }
 
   setScene (scene) {
@@ -115,14 +117,14 @@ export class ThreeLoader {
   setRender(bg, shadowMap) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setSize( this.size.width, this.size.height );
-    // this.renderer.encoding = true;
-    // this.renderer.outputEncoding = true;
+    this.renderer.encoding = true;
+    this.renderer.outputEncoding = true;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.renderer.physicallyCorrectLights = true;
     this.renderer.setPixelRatio( window.devicePixelRatio );
-    if (this.config.background) {
-      this.renderer.setClearColor(this.config.background, 1);
-    }
+    // if (this.config.background) {
+    //   this.renderer.setClearColor(this.config.background, 1);
+    // }
     if (this.config.shadowMap) {
       this.renderer.shadowMap.enabled = true;
       this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default PCFShadowMap
@@ -204,14 +206,22 @@ export class ThreeLoader {
     }
   }
 
-  onFileProgress () {
-
+  onFileProgress (xhr) {
+    if ( xhr.lengthComputable ) {
+      const percentComplete = xhr.loaded / xhr.total * 100;
+      const percent = this.files.loaded * this.files.progressFile + percentComplete * this.files.progressFile / 100;
+      if (this.files.onProgress) {
+        this.files.onProgress(percent);
+      }
+    }
   }
 
-  loadFiles (files, callback) {
+  loadFiles (files, callback, onProgress) {
     this.files.toLoad = files;
     this.files.loaded = 0;
     this.files.callback = callback;
+    this.files.onProgress = onProgress;
+    this.files.progressFile = 100 / this.files.toLoad.length;
     files.forEach(file => {
       let loader = "";
       let extension = file.split(".");

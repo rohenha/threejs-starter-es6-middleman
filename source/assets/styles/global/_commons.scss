@@ -8,3 +8,21 @@ body {
 body {
   font-size: 0;
 }
+
+
+.a-loader {
+  align-items: center;
+  background-color: clr(primary);
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100%;
+
+  p {
+    color: clr(white);
+    font-size: 5rem;
+  }
+}
