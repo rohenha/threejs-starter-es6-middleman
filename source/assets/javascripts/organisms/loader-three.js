@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import CameraControls from 'camera-controls';
 import Stats from "stats.js";
+import "../utils/MTLLoader";
+import "../utils/OBJLoader";
 
 /**
 * description
@@ -43,6 +45,13 @@ export class ThreeLoader {
     this.lights = [];
     this.helpers = [];
     this.clock = new THREE.Clock();
+    this.mtlLoader = new THREE.MTLLoader();
+    this.objLoader = new THREE.OBJLoader();
+    this.files = {
+      loaded: 0,
+      toLoad: [],
+      callback: null
+    };
     this.size = { width : 0, height: 0 };
     CameraControls.install({ THREE: THREE });
     this.init();
@@ -192,6 +201,52 @@ export class ThreeLoader {
       const shadowCameraHelper = new THREE.CameraHelper( light.shadow.camera );
       this.helpers.push(shadowCameraHelper);
       this.scene.add( shadowCameraHelper );
+    }
+  }
+
+  onFileProgress () {
+
+  }
+
+  loadFiles (files, callback) {
+    this.files.toLoad = files;
+    this.files.loaded = 0;
+    this.files.callback = callback;
+    files.forEach(file => {
+      let loader = "";
+      let extension = file.split(".");
+      let filename = extension[0].split("/");
+      extension = extension[extension.length - 1];
+      filename = filename[filename.length - 1];
+      switch (extension) {
+        case "obj":
+          loader = "objLoader";
+          break;
+        case "mtl":
+          loader = "mtlLoader";
+          break;
+        default:
+          break;
+      }
+      if (loader !== "" && this[loader]) {
+        this[loader].load(file, this.checkFilesLoaded.bind(this, filename, extension), this.onFileProgress.bind(this));
+      }
+    });
+  }
+
+  checkFilesLoaded (filename, extension, file) {
+    if (!this.files[extension]) {
+      this.files[extension] = {};
+    }
+    if (extension === "mtl") {
+      file.preload();
+    }
+    this.files[extension][filename] = file;
+    this.files.loaded += 1;
+    if (this.files.loaded === this.files.toLoad.length) {
+      if (this.files.callback) {
+        this.files.callback();
+      }
     }
   }
 
